@@ -154,6 +154,11 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        @keyframes zoomIn {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
         .companion-input {
             margin-bottom: 15px;
             position: relative;
@@ -255,6 +260,34 @@
             font-weight: 500;
         }
 
+        .success-message.show {
+            display: block;
+            animation: fadeIn 0.8s ease;
+        }
+
+        .success-message .check-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            animation: zoomIn 0.6s ease;
+        }
+
+        .back-btn {
+            margin-top: 20px;
+            background: linear-gradient(45deg, #c8c5be, #c2bfba);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(194, 191, 186, 0.4);
+        }
+
         @media (max-width: 768px) {
             .container {
                 margin: 10px;
@@ -320,11 +353,14 @@
             <button type="submit" class="submit-btn" id="submitBtn">
                 Enviar Confirmación
             </button>
-
-            <div class="success-message" id="successMessage">
-                <p>Gracias por ser parte de esta historia</p>
-            </div>
         </form>
+
+        <!-- Mensaje final fuera del formulario -->
+        <div class="success-message" id="successMessage">
+            <div class="check-icon">💕</div>
+            <p>Gracias por ser parte de nuestra historia</p>
+            <button class="back-btn" onclick="resetForm()">Volver al formulario</button>
+        </div>
     </div>
 
     <script>
@@ -342,7 +378,6 @@
                 } else {
                     companionsSection.classList.remove('show');
                     sorryMessage.classList.add('show');
-                    // Limpiar acompañantes cuando se selecciona "No"
                     document.getElementById('companionsList').innerHTML = '';
                     companionCount = 0;
                 }
@@ -373,21 +408,17 @@
             
             const submitBtn = document.getElementById('submitBtn');
             const successMessage = document.getElementById('successMessage');
+            const header = document.querySelector('.header');
             
-            // Deshabilitar botón de envío
             submitBtn.disabled = true;
             submitBtn.textContent = 'Enviando...';
             
-            // Recopilar datos del formulario
             const formData = new FormData(this);
             const data = {};
-            
-            // Datos básicos
             data.nombre = formData.get('nombre');
             data.asistencia = formData.get('asistencia');
             data.timestamp = new Date().toISOString();
             
-            // Recopilar acompañantes
             const acompañantes = [];
             const companionInputs = document.querySelectorAll('input[name^="acompañante_"]');
             companionInputs.forEach(input => {
@@ -399,38 +430,55 @@
             data.total_personas = data.asistencia === 'si' ? 1 + acompañantes.length : 0;
             
             try {
-                // URL de tu Google Apps Script
                 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxI5TH-b74BeM8pnjoyy7BXzkA6uFYAa6IJxRHKRpj3J2cI0Fq3jf20tnOJ-hsoE3PI/exec';
                 
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
                 
-                // Pequeña espera para asegurar que se procese
                 await new Promise(resolve => setTimeout(resolve, 1000));
-                
                 console.log('Datos enviados:', data);
                 
-                // Mostrar mensaje de éxito
-                successMessage.style.display = 'block';
+                // Ocultar cabecera y formulario; mostrar SOLO el mensaje
+                header.style.display = 'none';
                 this.style.display = 'none';
+                successMessage.classList.add('show');
+                
+                // Desplazar al inicio del contenedor por si está abajo
+                document.querySelector('.container').scrollIntoView({ behavior: 'smooth' });
                 
             } catch (error) {
                 console.error('Error al enviar:', error);
                 alert('Hubo un error al enviar tu confirmación. Por favor, inténtalo de nuevo.');
-                
-                // Rehabilitar botón
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Enviar Confirmación';
             }
         });
 
-        // Agregar efectos visuales
+        // Restaurar formulario y cabecera
+        function resetForm() {
+            const form = document.getElementById('rsvpForm');
+            const header = document.querySelector('.header');
+            const successMessage = document.getElementById('successMessage');
+            
+            form.reset();
+            document.getElementById('companionsList').innerHTML = '';
+            document.getElementById('companionsSection').classList.remove('show');
+            document.getElementById('sorryMessage').classList.remove('show');
+            
+            form.style.display = 'block';
+            header.style.display = 'block';
+            successMessage.classList.remove('show');
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Enviar Confirmación';
+        }
+
+        // Efecto de entrada para el contenedor
         document.addEventListener('DOMContentLoaded', function() {
             const container = document.querySelector('.container');
             container.style.opacity = '0';
